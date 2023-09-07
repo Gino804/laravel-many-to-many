@@ -11,7 +11,7 @@ class Technology extends Model
 
     protected $fillable = ['label', 'color'];
 
-    public function posts()
+    public function projects()
     {
         return $this->belongsToMany(Project::class);
     }
