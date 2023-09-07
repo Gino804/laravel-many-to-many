@@ -14,7 +14,20 @@
     <p>{{ $project->description }}</p>
     <p><b>Created at: </b>{{ $project->created_at }}</p>
     <p><b>Last update: </b>{{ $project->updated_at }}</p>
-    <p><b>Type: </b>{{ $project->type?->label }}</p>
+    <p><b>Type: </b>{{ $project->type ? $project->type->label : 'None' }}</p>
+    <p><b>Technologies: </b>
+      @if ($project->technologies)
+        @foreach ($project->technologies as $i => $technology)
+          @if ($i == count($project->technologies) - 1)
+            {{ $technology->label }}
+          @else
+            {{ $technology->label . ', ' }}
+          @endif
+        @endforeach
+      @else
+        None
+      @endif
+    </p>
     <hr>
 
     <a class="btn btn-warning" href="{{ route('admin.projects.edit', $project) }}">Edit</a>

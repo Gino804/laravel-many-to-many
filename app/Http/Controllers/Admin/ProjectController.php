@@ -6,6 +6,7 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Type;
+use App\Models\Technology;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -27,7 +28,8 @@ class ProjectController extends Controller
     {
         $project = new Project();
         $types = Type::all();
-        return view('admin.projects.create', compact('project', 'types'));
+        $technologies = Technology::all();
+        return view('admin.projects.create', compact('project', 'types', 'technologies'));
     }
 
     /**
@@ -40,7 +42,8 @@ class ProjectController extends Controller
                 'title' => 'required|string|max:20',
                 'description' => 'required|string',
                 'image' => 'nullable|file',
-                'type_id' => 'nullable|numeric'
+                'type_id' => 'nullable|numeric',
+                'technologies' => 'nullable|exists:technologies,id'
             ]
         );
 
@@ -55,6 +58,10 @@ class ProjectController extends Controller
         $data['slug'] = Str::slug($data['title'], '-');
         $project->fill($data);
         $project->save();
+
+        if (array_key_exists('technologies', $data)) {
+            $project->technologies()->attach($data['technologies']);
+        }
 
         return to_route('admin.projects.show', $project);
     }
@@ -73,7 +80,9 @@ class ProjectController extends Controller
     public function edit(Project $project)
     {
         $types = Type::all();
-        return view('admin.projects.edit', compact('project', 'types'));
+        $technologies = Technology::all();
+        $project_technology_ids = $project->technologies->pluck('id')->toArray();
+        return view('admin.projects.edit', compact('project', 'types', 'technologies', 'project_technology_ids'));
     }
 
     /**
@@ -86,7 +95,8 @@ class ProjectController extends Controller
                 'title' => 'required|string|max:20',
                 'description' => 'required|string',
                 'image' => 'nullable|file',
-                'type_id' => 'nullable|numeric'
+                'type_id' => 'nullable|numeric',
+                'technologies' => 'nullable|exists:technologies,id'
             ]
         );
 
@@ -101,6 +111,9 @@ class ProjectController extends Controller
         $data['slug'] = Str::slug($data['title'], '-');
         $project->update($data);
 
+        if (!array_key_exists('technologies', $data) && count($project->technologies)) $project->technologies()->detach();
+        elseif (array_key_exists('technologies', $data)) $project->technologies()->sync($data['technologies']);
+
         return to_route('admin.projects.show', compact('project'));
     }
 
@@ -110,6 +123,7 @@ class ProjectController extends Controller
     public function destroy(Project $project)
     {
         if ($project->image) Storage::delete($project->image);
+        if (count($project->technologies)) $project->technologies()->detach();
         $project->delete();
         return to_route('admin.projects.index');
     }
